@@ -1,0 +1,11 @@
+main {
+  display: flex;
+}
+aside {
+  width: 33%;
+}
+#weather-container {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
