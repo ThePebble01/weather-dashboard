@@ -1,5 +1,5 @@
 * {
-  background-color: #f0efc5; /*PLACEHOLDER*/
+  background-color: #f0efc5;
 }
 header {
   background: radial-gradient(
@@ -29,12 +29,23 @@ aside {
   margin-right: 3%;
   border: 1px solid black;
 }
+.search-history-container {
+  margin-top: 3%;
+}
 .weather-today {
   width: 93%;
   margin-bottom: 2%;
 }
-#weather-container {
-  /* display: flex;
-  flex-wrap: nowrap;
-  justify-content: center; */
+@media screen and (max-width: 768px) {
+  main {
+    flex-direction: column;
+  }
+  aside {
+    width: 100%;
+    padding: 1%;
+    margin-bottom: 2%;
+  }
+  .row {
+    margin: 2%;
+  }
 }

@@ -1,3 +1,0 @@
-Review responses, write json->html supporting functions or methods
-
-plan overall page based on structure

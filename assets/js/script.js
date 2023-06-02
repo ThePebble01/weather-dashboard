@@ -1,6 +1,8 @@
+const localStorageKey = "weatherDashboardSearchHistory";
+const cityStateSeparator = ", ";
 $(function () {
   setStateOptions();
-  //load history
+  displaySearchHistory();
 });
 function setStateOptions() {
   var stateSelectEl = $("#state");
@@ -11,12 +13,46 @@ function setStateOptions() {
     stateSelectEl.append(optionEl);
   }
 }
+function displaySearchHistory() {
+  var priorSearches = JSON.parse(localStorage.getItem(localStorageKey));
+  if (priorSearches) {
+    var divCardEl = $("<div>");
+    divCardEl.addClass("card");
+
+    var divCardHeaderEl = $("<div>");
+    divCardHeaderEl.addClass("card-header");
+    divCardHeaderEl.text("Search History");
+    divCardEl.append(divCardHeaderEl);
+
+    var listGroupEl = $("<ul>");
+    listGroupEl.addClass("list-group list-group-flush");
+    divCardEl.append(listGroupEl);
+    $(".search-history-container").append(divCardEl);
+    for (var i = 0; i < priorSearches.length; i++) {
+      var listItemEl = $("<li>");
+      listItemEl.addClass("list-group-item");
+      listItemEl.text(priorSearches[i]);
+      listGroupEl.append(listItemEl);
+    }
+    $("li").on("click", handleSearchEntryClick);
+  }
+}
 function handleLocationSearch(event) {
   event.preventDefault();
-  var city = $("#city").val();
-  var state = $("#state").val();
-  geoCodeLocationForWeather(city, state);
-  //retrieveWeatherFromLocation(null, null);
+  resetPage();
+  geoCodeLocationForWeather($("#city").val(), $("#state").val());
+}
+function resetPage() {
+  $(".weather-today").empty();
+  $("h3").text("");
+  $(".weather-next").empty();
+}
+function handleSearchEntryClick(event) {
+  event.preventDefault();
+  var cityStateArray = event.target.textContent.split(cityStateSeparator);
+  $("#city").val(cityStateArray[0]);
+  $("#state").val(cityStateArray[1]);
+  handleLocationSearch(event);
 }
 /*
   API Documentation: https://openweathermap.org/api/geocoding-api
@@ -63,13 +99,33 @@ function geoCodeLocationForWeather(city, state) {
         );
       }
       if (latitude && longitude) {
+        saveSearch(city, state);
         retrieveWeatherFromLocation(latitude, longitude);
       }
     })
     .catch(function (error) {
       console.log(error);
-      alert("The geolocation servie has failed.  Please try again later.");
+      alert(
+        "The geolocation service has failed so we are unable to provide you with weather data.  Please try again later."
+      );
     });
+}
+function saveSearch(city, state) {
+  var cityState = city + cityStateSeparator + state;
+  var priorSearches = JSON.parse(localStorage.getItem(localStorageKey));
+  if (Array.isArray(priorSearches)) {
+    priorSearches.push(cityState);
+    console.log(priorSearches.length);
+    if (priorSearches.length >= 9) {
+      priorSearches = priorSearches.slice(1);
+    }
+  } else {
+    priorSearches = [];
+    priorSearches.push(cityState);
+  }
+  localStorage.setItem(localStorageKey, JSON.stringify(priorSearches));
+  $(".search-history-container").empty(); //Resets the search history
+  displaySearchHistory();
 }
 /*
   API Documentation: https://openweathermap.org/forecast5
@@ -93,28 +149,31 @@ function retrieveWeatherFromLocation(lat, lon) {
     });
 }
 function displayWeather(dailyWeather) {
-  var todayWeatherContainer = $(".weather-today");
-  var nextWeatherContainer = $(".weather-next");
+  displayWeatherForToday(dailyWeather[0]);
+  $("h3").text("5 DAY FORECAST:");
   var priorWeatherDate;
-  var numDays = 0;
-  for (var i = 0; i < dailyWeather.length; i++) {
+  for (var i = 1; i < dailyWeather.length; i++) {
     var weatherDate = new Date(dailyWeather[i].dt_txt.split(" ")[0]);
     if (!priorWeatherDate || priorWeatherDate < weatherDate) {
+      var weatherIcon = dailyWeather[i].weather[0].icon.replace("n", "d");
+      var weatherDescription = dailyWeather[i].weather[0].description;
       var divCardEl = $("<div>");
       divCardEl.addClass("card");
       divCardEl.addClass("border-secondary");
       var divCardBodyEl = $("<div>");
       divCardBodyEl.addClass("card-body");
       divCardEl.append(divCardBodyEl);
-
       var h5CardTitleEl = $("<h5>");
-      var title = weatherDate.toDateString();
-      h5CardTitleEl.text(title);
+      h5CardTitleEl.text(weatherDate.toDateString());
       divCardBodyEl.append(h5CardTitleEl);
-
+      var imgEl = $("<img>");
+      imgEl.attr(
+        "src",
+        "https://openweathermap.org/img/wn/" + weatherIcon + "@2x.png"
+      );
+      imgEl.attr("alt", weatherDescription);
+      divCardBodyEl.append(imgEl);
       var pCardBodyEl = $("<p>");
-      // ADD IMAGE LATER, BASE OFF OF dailyWeather[i].weather[0].main
-      // RAin,
       var spanTempEl = $("<span>");
       spanTempEl.text("Temperature: " + dailyWeather[i].main.temp + " °F");
       pCardBodyEl.append(spanTempEl);
@@ -126,30 +185,54 @@ function displayWeather(dailyWeather) {
       var spanWindEl = $("<span>");
       spanWindEl.text("Wind: " + dailyWeather[i].wind.gust + " MPH");
       pCardBodyEl.append(spanWindEl);
-
       divCardBodyEl.append(pCardBodyEl);
-      if (numDays == 0) {
-        h5CardTitleEl.text(
-          "Today in " + $("#city").val() + ": " + weatherDate.toDateString()
-        );
-        divCardEl.css("width", "100%");
-        todayWeatherContainer.append(divCardEl);
-      } else if (numDays == 1) {
-        // var h3El = $("<h3>");
-        // h3El.text("5-Day Forecast:");
-        // nextWeatherContainer.append(h3El);
-        nextWeatherContainer.append(divCardEl);
-      } else {
-        nextWeatherContainer.append(divCardEl);
-      }
-      numDays++;
+      $(".weather-next").append(divCardEl);
     }
     priorWeatherDate = weatherDate;
   }
 }
+function displayWeatherForToday(weatherToday) {
+  var weatherIcon = weatherToday.weather[0].icon.replace("n", "d");
+  var weatherDescription = weatherToday.weather[0].description;
+  var weatherDate = new Date(weatherToday.dt_txt.split(" ")[0]);
+  var divCardEl = $("<div>");
+  divCardEl.addClass("card");
+  divCardEl.addClass("border-primary");
+  var divCardBodyEl = $("<div>");
+  divCardBodyEl.addClass("card-body");
+  divCardEl.append(divCardBodyEl);
+  var h5CardTitleEl = $("<h5>");
+  h5CardTitleEl.text(
+    "Today in " + $("#city").val() + ": " + weatherDate.toDateString()
+  );
+  divCardBodyEl.append(h5CardTitleEl);
+  var imgEl = $("<img>");
+  imgEl.attr(
+    "src",
+    "https://openweathermap.org/img/wn/" + weatherIcon + "@2x.png"
+  );
+  imgEl.attr("alt", weatherDescription);
+  divCardBodyEl.append(imgEl);
+  var pCardBodyEl = $("<p>");
+  var spanTempEl = $("<span>");
+  spanTempEl.text("Temperature: " + weatherToday.main.temp + " °F");
+  pCardBodyEl.append(spanTempEl);
+  pCardBodyEl.append($("<br>"));
+  var spanHumEl = $("<span>");
+  spanHumEl.text("Humidity: " + weatherToday.main.temp + " %");
+  pCardBodyEl.append(spanHumEl);
+  pCardBodyEl.append($("<br>"));
+  var spanWindEl = $("<span>");
+  spanWindEl.text("Wind: " + weatherToday.wind.gust + " MPH");
+  pCardBodyEl.append(spanWindEl);
+  divCardBodyEl.append(pCardBodyEl);
+  divCardEl.css("width", "100%");
+  $(".weather-today").append(divCardEl);
+}
+
 $("#search").on("click", handleLocationSearch);
 
-//Placed at bottom contrary to best practices since this is only used for select option
+//Placed at bottom contrary to best practices since this constant is only used for select option
 const stateList = [
   "Alabama",
   "Alaska",
