@@ -1,13 +1,25 @@
+$(function () {
+  setStateOptions();
+  //load history
+});
+function setStateOptions() {
+  var stateSelectEl = $("#state");
+  for (var i = 0; i < stateList.length; i++) {
+    var optionEl = $("<option>");
+    optionEl.attr("value", stateList[i]);
+    optionEl.text(stateList[i]);
+    stateSelectEl.append(optionEl);
+  }
+}
 function handleLocationSearch(event) {
   event.preventDefault();
   var city = $("#city").val();
   var state = $("#state").val();
-  //RENAME
   geoCodeLocationForWeather(city, state);
   //retrieveWeatherFromLocation(null, null);
 }
-/*research async await
-
+/*
+  API Documentation: https://openweathermap.org/api/geocoding-api
 */
 function geoCodeLocationForWeather(city, state) {
   fetch(
@@ -59,20 +71,21 @@ function geoCodeLocationForWeather(city, state) {
       alert("The geolocation servie has failed.  Please try again later.");
     });
 }
+/*
+  API Documentation: https://openweathermap.org/forecast5
+*/
 function retrieveWeatherFromLocation(lat, lon) {
   fetch(
     "https://api.openweathermap.org/data/2.5/forecast?lat=" +
       lat +
       "&lon=" +
       lon +
-      "&appid=5a5f2543215b0ae09a5dc07887c20551&units=imperial&cnt=6"
+      "&appid=5a5f2543215b0ae09a5dc07887c20551&units=imperial"
   )
     .then(function (response) {
       return response.json();
     })
     .then(function (data) {
-      console.log("weather data!");
-      console.log(data);
       displayWeather(data.list);
     })
     .catch(function (error) {
@@ -80,58 +93,62 @@ function retrieveWeatherFromLocation(lat, lon) {
     });
 }
 function displayWeather(dailyWeather) {
-  var weatherContainer = $("#weather-container");
-
-  var weatherContainer = $(".weather-today");
+  var todayWeatherContainer = $(".weather-today");
+  var nextWeatherContainer = $(".weather-next");
+  var priorWeatherDate;
+  var numDays = 0;
   for (var i = 0; i < dailyWeather.length; i++) {
-    console.log(dailyWeather[i]);
-    var divCardEl = $("<div>");
-    divCardEl.addClass("card");
-    var divCardBodyEl = $("<div>");
-    divCardBodyEl.addClass("card-body");
+    var weatherDate = new Date(dailyWeather[i].dt_txt.split(" ")[0]);
+    if (!priorWeatherDate || priorWeatherDate < weatherDate) {
+      var divCardEl = $("<div>");
+      divCardEl.addClass("card");
+      divCardEl.addClass("border-secondary");
+      var divCardBodyEl = $("<div>");
+      divCardBodyEl.addClass("card-body");
+      divCardEl.append(divCardBodyEl);
 
-    dailyWeather[i].dt_txt;
-    dailyWeather[i].main.humidity,
-      dailyWeather[i].main.temp,
-      dailyWeather[i].wind.gust;
-    /*
-    <div class="card">
-              <div class="card-body">
-                <h5 class="card-title">TODAY, 6/1/2023</h5>
-                <p class="card-text">
-                  <span>Temp: 100 F</span>
-                  <span>Humidity: X %</span>
-                  <span>Wind: X MPH</span>
-                </p>
-              </div>
-            </div>
+      var h5CardTitleEl = $("<h5>");
+      var title = weatherDate.toDateString();
+      h5CardTitleEl.text(title);
+      divCardBodyEl.append(h5CardTitleEl);
 
-        .dt_txt = 2023-06-01 00:00:00
-            .main.temp
-            .weather.main (rain, snow, clouds)
+      var pCardBodyEl = $("<p>");
+      // ADD IMAGE LATER, BASE OFF OF dailyWeather[i].weather[0].main
+      // RAin,
+      var spanTempEl = $("<span>");
+      spanTempEl.text("Temperature: " + dailyWeather[i].main.temp + " °F");
+      pCardBodyEl.append(spanTempEl);
+      pCardBodyEl.append($("<br>"));
+      var spanHumEl = $("<span>");
+      spanHumEl.text("Humidity: " + dailyWeather[i].main.temp + " %");
+      pCardBodyEl.append(spanHumEl);
+      pCardBodyEl.append($("<br>"));
+      var spanWindEl = $("<span>");
+      spanWindEl.text("Wind: " + dailyWeather[i].wind.gust + " MPH");
+      pCardBodyEl.append(spanWindEl);
 
-            extra: wind (direction would be arrow rotated dynamically!)
-    */
+      divCardBodyEl.append(pCardBodyEl);
+      if (numDays == 0) {
+        h5CardTitleEl.text(
+          "Today in " + $("#city").val() + ": " + weatherDate.toDateString()
+        );
+        divCardEl.css("width", "100%");
+        todayWeatherContainer.append(divCardEl);
+      } else if (numDays == 1) {
+        // var h3El = $("<h3>");
+        // h3El.text("5-Day Forecast:");
+        // nextWeatherContainer.append(h3El);
+        nextWeatherContainer.append(divCardEl);
+      } else {
+        nextWeatherContainer.append(divCardEl);
+      }
+      numDays++;
+    }
+    priorWeatherDate = weatherDate;
   }
 }
 $("#search").on("click", handleLocationSearch);
 
-function Coordinates(lat, lon) {
-  this.lat = lat;
-  this.lon = lon;
-}
-$(function () {
-  setStateOptions();
-});
-function setStateOptions() {
-  var stateSelectEl = $("#state");
-  for (var i = 0; i < stateList.length; i++) {
-    var optionEl = $("<option>");
-    optionEl.attr("value", stateList[i]);
-    optionEl.text(stateList[i]);
-    stateSelectEl.append(optionEl);
-  }
-}
 //Placed at bottom contrary to best practices since this is only used for select option
 const stateList = [
   "Alabama",
