@@ -1,11 +1,13 @@
 const localStorageKey = "weatherDashboardSearchHistory";
 const cityStateSeparator = ", ";
+var stateSelectEl = $("#state");
+var citySelectEl = $("#city");
 $(function () {
   setStateOptions();
   displaySearchHistory();
 });
 function setStateOptions() {
-  var stateSelectEl = $("#state");
+  // var stateSelectEl = $("#state");
   for (var i = 0; i < stateList.length; i++) {
     var optionEl = $("<option>");
     optionEl.attr("value", stateList[i]);
@@ -40,7 +42,7 @@ function displaySearchHistory() {
 function handleLocationSearch(event) {
   event.preventDefault();
   resetPage();
-  geoCodeLocationForWeather($("#city").val(), $("#state").val());
+  geoCodeLocationForWeather(citySelectEl.val(), stateSelectEl.val());
 }
 function resetPage() {
   $(".weather-today").empty();
@@ -50,8 +52,8 @@ function resetPage() {
 function handleSearchEntryClick(event) {
   event.preventDefault();
   var cityStateArray = event.target.textContent.split(cityStateSeparator);
-  $("#city").val(cityStateArray[0]);
-  $("#state").val(cityStateArray[1]);
+  citySelectEl.val(cityStateArray[0]);
+  stateSelectEl.val(cityStateArray[1]);
   handleLocationSearch(event);
 }
 /*
@@ -106,7 +108,7 @@ function geoCodeLocationForWeather(city, state) {
     .catch(function (error) {
       console.log(error);
       alert(
-        "The geolocation service has failed so we are unable to provide you with weather data.  Please try again later."
+        "The geolocation service has failed, so we are unable to provide you with weather data.  Please try again later."
       );
     });
 }
@@ -117,7 +119,7 @@ function saveSearch(city, state) {
     priorSearches.push(cityState);
     console.log(priorSearches.length);
     if (priorSearches.length >= 9) {
-      priorSearches = priorSearches.slice(1);
+      priorSearches = priorSearches.slice(priorSearches.length - 8);
     }
   } else {
     priorSearches = [];
@@ -179,7 +181,7 @@ function displayWeather(dailyWeather) {
       pCardBodyEl.append(spanTempEl);
       pCardBodyEl.append($("<br>"));
       var spanHumEl = $("<span>");
-      spanHumEl.text("Humidity: " + dailyWeather[i].main.temp + " %");
+      spanHumEl.text("Humidity: " + dailyWeather[i].main.humidity + " %");
       pCardBodyEl.append(spanHumEl);
       pCardBodyEl.append($("<br>"));
       var spanWindEl = $("<span>");
@@ -203,7 +205,7 @@ function displayWeatherForToday(weatherToday) {
   divCardEl.append(divCardBodyEl);
   var h5CardTitleEl = $("<h5>");
   h5CardTitleEl.text(
-    "Today in " + $("#city").val() + ": " + weatherDate.toDateString()
+    "Today in " + citySelectEl.val() + ": " + weatherDate.toDateString()
   );
   divCardBodyEl.append(h5CardTitleEl);
   var imgEl = $("<img>");
